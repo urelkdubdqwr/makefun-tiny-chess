@@ -1,4 +1,4 @@
-# tiny-chess-01: readable fixed-node negamax engine, <4 KB.
+# tiny-chess-01 engine, <4 KB.
 import json,os,urllib.request as U
 EU=os.environ.get("MAKEFUN_ENV_URL","")
 V=(0,100,320,330,500,900,0)
@@ -7,7 +7,7 @@ KD=BD_+RD_
 CAST={95:((1,97,(96,97),(95,96,97)),(2,93,(92,93,94),(93,94,95))),
  25:((4,27,(26,27),(25,26,27)),(8,23,(22,23,24),(23,24,25)))}
 CR={91:2,98:1,21:8,28:4}
-M=100000;N=0
+M=100000;N=0;KL={}
 class TO(Exception):pass
 def att(bd,s,w):
  g=1 if w else -1
@@ -79,27 +79,29 @@ def ev(st):
 def sr(st,d,a,b):
  global N
  N+=1
- if N>12000:raise TO
+ if N>48000:raise TO
  bd=st[0];side=st[1];chk=bad(bd,side);quiet=d<=0 and not chk
  best=ev(st) if quiet else -M-1
  if quiet:
   if best>=b:return best
   if best>a:a=best
  for m in sorted(gen(st,1 if quiet else 0),reverse=True,key=lambda m:
-   10000+V[abs(bd[m[1]])] if bd[m[1]] else 0):
+   90*(m==KL.get(d))+(10000+V[abs(bd[m[1]])] if bd[m[1]] else 0)):
   ns=mk(st,m)
   if bad(ns[0],side):continue
   s=-sr(ns,d-1,-b,-a)
   if s>best:best=s
   if s>a:
    a=s
-   if a>=b:break
+   if a>=b:
+    if not bd[m[1]]:KL[d]=m
+    break
  if best==-M-1 and (d>0 or chk):return -M-d if chk else 0
  return best
 def choose(st):
  global N
  ms=[m for m in gen(st) if not bad(mk(st,m)[0],st[1])]
- bm=ms[0];N=0
+ bm=ms[0];N=0;KL.clear()
  for d in range(1,64):
   a=-M-1;cb=bm
   try:
@@ -136,5 +138,5 @@ def main():
    try:g=post("/move",{"game":g["game"],"move":uci(m) if m else g["legal_moves"][0]})
    except Exception:g=post("/game",{})
 if __name__=="__main__":main()
-# tiny-chess-01 @urelkdubdqwr
-# deterministic fixed-node search
+# @urelkdubdqwr
+# v3
